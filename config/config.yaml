@@ -1,0 +1,210 @@
+# Configuration for Traffic Accident Risk Prediction System
+
+# Database Configuration
+database:
+  host: localhost
+  port: 5432
+  name: traffic_accidents_db
+  user: postgres
+  password: postgres  # Change in production!
+  
+# Paths
+paths:
+  raw_data: data/raw
+  processed_data: data/processed
+  features: data/features
+  predictions: data/predictions
+  models: models
+  logs: logs
+
+# Data Ingestion
+ingestion:
+  accident_file: US_Accidents.csv
+  batch_size: 10000
+  weather_api_key: null  # Add your OpenWeatherMap API key
+  weather_api_url: https://api.openweathermap.org/data/2.5/forecast
+  
+# Feature Engineering
+features:
+  # Temporal features
+  temporal:
+    hour_of_day: true
+    day_of_week: true
+    month: true
+    is_weekend: true
+    is_holiday: true
+    rush_hour: true
+    
+  # Weather features
+  weather:
+    visibility: true
+    precipitation: true
+    temperature: true
+    wind_speed: true
+    weather_condition: true
+    
+  # Spatial features
+  spatial:
+    accident_frequency: true
+    rolling_7day: true
+    rolling_30day: true
+    cluster_id: true
+    road_type: true
+    
+  # Lag features
+  lag:
+    last_24h: true
+    last_7days: true
+    moving_avg_3day: true
+    moving_avg_7day: true
+    moving_avg_30day: true
+    
+  # Clustering
+  clustering:
+    n_clusters: 50
+    method: kmeans  # kmeans or h3
+    h3_resolution: 8  # if using h3
+    
+# Model Training
+training:
+  # Train/validation/test split
+  train_end_date: "2016-02-15"
+  val_end_date: "2016-02-20"
+  test_end_date: "2016-02-28"
+  
+  # Target variable
+  target: accident_occurred_next_24h
+  prediction_window_hours: 24
+  
+  # Class imbalance handling
+  handle_imbalance: true
+  imbalance_method: class_weight  # class_weight, smote, or undersample
+  
+  # Models to train
+  models:
+    logistic_regression:
+      enabled: true
+      params:
+        C: 1.0
+        max_iter: 1000
+        class_weight: balanced
+        
+    random_forest:
+      enabled: true
+      params:
+        n_estimators: 100
+        max_depth: 20
+        min_samples_split: 10
+        min_samples_leaf: 5
+        class_weight: balanced
+        n_jobs: -1
+        random_state: 42
+        
+    xgboost:
+      enabled: true
+      params:
+        n_estimators: 200
+        max_depth: 10
+        learning_rate: 0.1
+        subsample: 0.8
+        colsample_bytree: 0.8
+        scale_pos_weight: 5
+        random_state: 42
+        n_jobs: -1
+        
+    lightgbm:
+      enabled: true
+      params:
+        n_estimators: 200
+        max_depth: 10
+        learning_rate: 0.1
+        num_leaves: 31
+        subsample: 0.8
+        colsample_bytree: 0.8
+        class_weight: balanced
+        random_state: 42
+        n_jobs: -1
+  
+  # Hyperparameter optimization
+  hyperopt:
+    enabled: false
+    n_trials: 50
+    cv_folds: 3
+    
+# Model Evaluation
+evaluation:
+  metrics:
+    - roc_auc
+    - precision
+    - recall
+    - f1
+    - accuracy
+    
+  # Target metrics
+  targets:
+    min_auc: 0.75
+    min_recall: 0.70
+    min_precision: 0.60
+    
+  # Thresholds for risk categorization
+  risk_thresholds:
+    low: 0.0
+    medium: 0.5
+    high: 0.75
+
+# Prediction
+prediction:
+  batch_size: 1000
+  output_format: csv  # csv or parquet
+  include_features: false
+  
+# API Configuration
+api:
+  host: 0.0.0.0
+  port: 8000
+  debug: false
+  workers: 4
+  reload: false
+  
+  # Endpoints
+  endpoints:
+    predictions: /api/predictions
+    high_risk_zones: /api/high-risk-zones
+    health: /health
+    
+  # Response limits
+  max_results: 1000
+  default_top_n: 10
+
+# MLflow Configuration
+mlflow:
+  tracking_uri: file:./mlruns
+  experiment_name: traffic_accident_prediction
+  artifact_location: ./mlruns
+  registered_model_name: traffic_accident_risk_model
+  
+# Monitoring
+monitoring:
+  enabled: true
+  performance_check_frequency: weekly
+  drift_detection: true
+  alert_on_degradation: true
+  
+  # Performance thresholds for alerts
+  alert_thresholds:
+    min_auc: 0.70
+    min_recall: 0.65
+    
+# Logging
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/application.log
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+
+# System
+system:
+  random_seed: 42
+  n_jobs: -1  # Use all available cores
+  memory_limit_gb: 8
